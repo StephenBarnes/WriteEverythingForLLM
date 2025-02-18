@@ -136,7 +136,7 @@ local function writeRecipeSummary(recipe)
 
 	-- Write the recipe category if it's not crafting or crafting-with-fluid.
 	if recipe.category ~= nil and recipe.category ~= "crafting" and recipe.category ~= "crafting-with-fluid" then
-		write("\tCraftable in: " .. recipe.category .. "\n")
+		write("\tCrafted by buildings with crafting category: " .. recipe.category .. "\n")
 	end
 end
 
@@ -159,7 +159,7 @@ local function outputItem(item)
 	if item.spoil_result ~= nil then
 		write{"", "\tSpoils to ", item.spoil_result.localised_name, " after " .. timeString(item.get_spoil_ticks()) .. "\n"}
 	elseif item.spoil_to_trigger_result ~= nil then
-		write{"", "\tSpoils to trigger event after " .. timeString(item.get_spoil_ticks()) .. "\n"}
+		write("\tSpoils after " .. timeString(item.get_spoil_ticks()) .. " to trigger event.\n")
 	end
 	writeIfExists{"", "\tDescription: ", item.localised_description, "\n"}
 end
@@ -236,19 +236,37 @@ local function maybeOutputPlanetAutoplaces(spaceLocation)
 	if mgs == nil then return end
 	local autoplaceSettings = mgs.autoplace_settings
 	if autoplaceSettings == nil then return end
-	-- This has .decorative, .tile, .entity. For now, just outputting the entities.
+	-- This has .decorative, .tile, .entity. Ignoring decoratives.
 	local ents = autoplaceSettings.entity.settings
-	if ents == nil then return end
-	write("\tNaturally occurring entities on this planet: ")
-	local i = 1
-	for entName, _ in pairs(ents) do
-		if i > 1 then
-			write(", ")
+	if ents ~= nil then
+		write("\tNaturally occurring entities on this planet: ")
+		local i = 1
+		for entName, _ in pairs(ents) do
+			if i > 1 then
+				write(", ")
+			end
+			write(prototypes.entity[entName].localised_name)
+			i = i + 1
 		end
-		write(prototypes.entity[entName].localised_name)
-		i = i + 1
+		write(".\n")
 	end
-	write(".\n")
+	local tiles = autoplaceSettings.tile.settings
+	if tiles ~= nil then
+		write("\tNaturally occurring tiles on this planet: ")
+		local i = 1
+		for tileName, _ in pairs(tiles) do
+			if i > 1 then
+				write(", ")
+			end
+			local tile = prototypes.tile[tileName]
+			write(tile.localised_name)
+			if tile.fluid ~= nil then
+				write{"", " (provides fluid ", tile.fluid.localised_name, ")"}
+			end
+			i = i + 1
+		end
+		write(".\n")
+	end
 end
 
 ---@param spaceLocation LuaSpaceLocationPrototype
