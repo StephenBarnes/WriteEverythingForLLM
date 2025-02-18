@@ -56,12 +56,21 @@ end
 ---@param tech LuaTechnologyPrototype
 local function getTechOrder(tech)
 	if tech.order ~= "" then return tech.order end
-	if tech.research_unit_ingredients ~= nil then
-		return ("%010d"):format(#(tech.research_unit_ingredients or {}) or 2) .. ("%010d"):format(tech.research_unit_count or 1e6)
+	if tech.research_unit_ingredients ~= nil and #(tech.research_unit_ingredients) > 0 then
+		return ("%02d"):format(#(tech.research_unit_ingredients or {}) or 2) .. ("%08d"):format(tech.research_unit_count or 1e6)
 	end
-	return ("%010d"):format((#(tech.prerequisites or {}) or 1) * 1e6)
+	-- If we reach this point, it's a trigger tech, so use prereqs.
+	if table_size(tech.prerequisites) == 0 then
+		return "0"
+	else
+		for _, prereq in pairs(tech.prerequisites) do
+			return getTechOrder(prereq) .. "-2"
+		end
+	end
 end
 table.sort(technologies, function(a, b)
+	log("getTechOrder(" .. a.name .. ") = " .. getTechOrder(a))
+	log("getTechOrder(" .. b.name .. ") = " .. getTechOrder(b))
 	return getTechOrder(a) < getTechOrder(b)
 end)
 
@@ -198,12 +207,14 @@ end
 
 ---@param spaceLocation LuaSpaceLocationPrototype
 local function outputSpaceLocation(spaceLocation)
+	if spaceLocation.hidden or spaceLocation.hidden_in_factoriopedia then return end
 	write{"", "* Space location: ", spaceLocation.localised_name, "\n"}
 	writeIfExists{"", "\tDescription: ", spaceLocation.localised_description, "\n"}
 end
 
 ---@param spaceConnection LuaSpaceConnectionPrototype
 local function outputSpaceConnection(spaceConnection)
+	if spaceConnection.hidden or spaceConnection.hidden_in_factoriopedia then return end
 	write{"", "* Space connection: ", spaceConnection.localised_name, "\n"}
 	write{"", "\tLength: " .. spaceConnection.length .. "km\n"}
 	writeIfExists{"", "\tDescription: ", spaceConnection.localised_description, "\n"}
@@ -231,7 +242,7 @@ local function outputSubgroup(subgroup, group)
 	-- Write out a subgroup's items/fluids/recipes/entities.
 	-- If the subgroup has no members, don't write anything.
 	if not subgroupHasMembers(subgroup) then return end
-	write{"", group.localised_name, " subgroup \"", subgroup.name, "\" containing:\n"}
+	write{"", "Group \"", group.localised_name, "\" has subgroup \"", subgroup.name, "\" containing:\n"}
 	-- Write out all items/etc, except don't print out multiple rows for item/entity/recipe of the same thing.
 	local members = subgroupMembers[subgroup.name]
 	for _, item in pairs(members.item) do
@@ -256,7 +267,7 @@ end
 
 local function outputGroup(group)
 	if not groupHasMembers(group) then
-		write{"", "GROUP: ", group.localised_name, " - has no members that need printing.\n"}
+		write{"", "GROUP: ", group.localised_name, " - has no members that need printing.\n\n"}
 		return
 	end
 	write{"", "GROUP: ", group.localised_name, "\n"}
@@ -264,6 +275,34 @@ local function outputGroup(group)
 		outputSubgroup(subgroup, group)
 	end
 	write{"", "End of group: ", group.localised_name, "\n\n"}
+end
+
+---@param technology LuaTechnologyPrototype
+local function outputTechnology(technology)
+	write{"", "* Technology: ", technology.localised_name, "\n"}
+	writeIfExists{"", "\tDescription: ", technology.localised_description, "\n"}
+	write("\tPrerequisites: ")
+	if table_size(technology.prerequisites) == 0 then
+		write("None.\n")
+	else
+		local i = 1
+		for name, prereqTech in pairs(technology.prerequisites) do
+			if i > 1 then
+				write(", ")
+			end
+			write(prereqTech.localised_name)
+			i = i + 1
+		end
+		write(".\n")
+	end
+	for _, effect in pairs(technology.effects) do
+		if effect.type == "unlock-recipe" then
+			local recipe = prototypes.recipe[effect.recipe]
+			write{"", "\tUnlocks recipe: ", recipe.localised_name, "\n"}
+		else
+			write("\tNon-recipe-unlock effect of type " .. effect.type .. "\n")
+		end
+	end
 end
 
 ------------------------------------------------------------------------
@@ -275,7 +314,7 @@ for _, group in pairs(groups) do
 	outputGroup(group)
 end
 
-
--- TODO: Write techs.
--- TODO: Write out descriptions where applicable.
--- TODO: Write out planets, planet-routes, etc.
+write("All technologies:\n")
+for _, technology in pairs(technologies) do
+	outputTechnology(technology)
+end
