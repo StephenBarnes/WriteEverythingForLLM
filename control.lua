@@ -137,7 +137,7 @@ local function writeRecipeSummary(recipe)
 
 	-- Write the recipe category if it's not crafting or crafting-with-fluid.
 	if recipe.category ~= nil and recipe.category ~= "crafting" and recipe.category ~= "crafting-with-fluid" then
-		write("\tCrafted by buildings with crafting category: " .. recipe.category .. "\n")
+		write("\tCrafting machine category: " .. recipe.category .. "\n")
 	end
 end
 
@@ -358,7 +358,7 @@ end
 
 local function outputGroup(group)
 	if not groupHasMembers(group) then
-		write{"", "GROUP: ", group.localised_name, " - has no members that need printing.\n\n"}
+		write{"", "GROUP: ", group.localised_name, " - entries omitted as there are no items/recipes/entities/etc.\n\n"}
 		return
 	end
 	write{"", "GROUP: ", group.localised_name, "\n"}
@@ -401,7 +401,7 @@ end
 
 helpers.write_file(FILENAME, "", false) -- False says to not append, so we remove text from the file.
 
-write("This file contains information about things that exist in the user's Factorio game, arranged by groups and subgroups, followed by a list of all technologies and the recipes they unlock. For every subgroup there is a complete list of all items, fluids, recipes, entities, and space locations/connections in that subgroup. Often an item is crafted using a recipe of the same name. Some items represent buildings/structures; these items can be placed in the Factorio world to create entities with the same name; the entities can then usually be mined / picked up to get the item back.\n\n")
+write("This file contains information about prototypes that exist in the user's Factorio game, arranged by groups and subgroups. For every subgroup there is a complete list of all items, fluids, recipes, entities, and space locations/connections in that subgroup. This is followed by a list of all technologies and the recipes they unlock.\n\nOften an item is crafted using a recipe with the same name as the item. Some items represent buildings/structures; the player can place these items in the Factorio world to create entities with the same name.\n\n")
 
 write("There are " .. table_size(groups) .. " groups: \"")
 local i = 1
