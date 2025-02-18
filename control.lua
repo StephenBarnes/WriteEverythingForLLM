@@ -64,10 +64,15 @@ end)
 ------------------------------------------------------------------------
 --- FUNCTIONS TO WRITE GROUPS/SUBGROUPS/ITEMS/ETC TO FILE
 
+-- Function that writes a string, with localisation for item names etc. Argument should be either one string, or a list of strings where the first one is "" (meaning the rest are concatenated).
 local function write(locstr)
+	if type(locstr) == "table" then
+		assert(#locstr < 20, "Localised-string writing is limited to 20 items at a time. Broken by: " .. serpent.block(locstr or "nil"))
+	end
 	helpers.write_file("WriteEverythingForLLM.txt", locstr, true)
 end
 
+-- Uses the "?" operator (built into Factorio's localised-string system) to write a string only if all of the localised strings in it exist, otherwise does nothing.
 local function writeIfExists(locstr)
 	write{"?", locstr, ""}
 end
@@ -77,6 +82,8 @@ local function ingredientOrResultName(thing)
 		return prototypes.item[thing.name].localised_name
 	elseif thing.type == "fluid" then
 		return prototypes.fluid[thing.name].localised_name
+	else
+		assert(false, "Invalid thing type: " .. serpent.block(thing))
 	end
 end
 
@@ -113,9 +120,27 @@ local function writeRecipeSummary(recipe)
 	end
 end
 
+local function timeString(ticks)
+	if ticks == 0 then return "(zero)" end
+	local seconds = ticks / 60
+	local minutes = math.floor(seconds / 60)
+	seconds = seconds % 60
+	if seconds > 0 then
+		return minutes .. " minutes and " .. seconds .. " seconds"
+	else
+		return minutes .. " minutes"
+	end
+end
+
+---@param item LuaItemPrototype
 local function outputItem(item)
 	if item.hidden or item.hidden_in_factoriopedia or item.parameter then return end
 	write{"", "* Item: ", item.localised_name, "\n"}
+	if item.spoil_result ~= nil then
+		write{"", "\tSpoils to ", item.spoil_result.localised_name, " after " .. timeString(item.get_spoil_ticks()) .. "\n"}
+	elseif item.spoil_to_trigger_result ~= nil then
+		write{"", "\tSpoils to trigger event after " .. timeString(item.get_spoil_ticks()) .. "\n"}
+	end
 	writeIfExists{"", "\tDescription: ", item.localised_description, "\n"}
 end
 
@@ -132,10 +157,39 @@ local function outputRecipe(recipe)
 	writeIfExists{"", "\tDescription: ", recipe.localised_description, "\n"}
 end
 
+---@param entity LuaEntityPrototype
+local function maybeOutputEntityMinable(entity)
+	if not entity.mineable_properties.minable then return end
+	local mineProducts = entity.mineable_properties.products
+	if mineProducts == nil or #mineProducts == 0 then return end
+	if #mineProducts == 1 and mineProducts[1].name == entity.name and mineProducts[1].amount == 1 then
+		-- The entity is the only product, so don't bother printing results.
+		return
+	end
+	write{"", "\tMined for: "}
+	for i, product in pairs(mineProducts) do
+		if product.type ~= "research-progress" then
+			local localisedName = ingredientOrResultName(product)
+			if product.probability ~= nil and product.probability ~= 1 then
+				write(product.probability * 100 .. "% ")
+			end
+			if product.amount ~= nil then
+				write{"", product.amount .. " ", localisedName}
+			else
+				write{"", product.amount_min .. "-" .. product.amount_max .. " ", localisedName}
+			end
+			if i < #mineProducts then write(" + ") end
+		end
+	end
+	write("\n")
+end
+
+---@param entity LuaEntityPrototype
 local function outputEntity(entity)
 	if entity.hidden or entity.hidden_in_factoriopedia then return end
 	write{"", "* Entity: ", entity.localised_name, "\n"}
 	writeIfExists{"", "\tDescription: ", entity.localised_description, "\n"}
+	maybeOutputEntityMinable(entity)
 end
 
 local function subgroupHasMembers(subgroup)
@@ -156,14 +210,6 @@ local function groupHasMembers(group)
 	return false
 end
 
-local function subgroupAlsoHasRecipe(thing)
-	local recipe = prototypes.recipe[thing.name]
-	if recipe ~= nil and recipe.subgroup == thing.subgroup and not (recipe.hidden or recipe.hidden_in_factoriopedia) then
-		return true
-	end
-	return false
-end
-
 local function outputSubgroup(subgroup, group)
 	-- Write out a subgroup's items/fluids/recipes/entities.
 	-- If the subgroup has no members, don't write anything.
@@ -172,14 +218,10 @@ local function outputSubgroup(subgroup, group)
 	-- Write out all items/etc, except don't print out multiple rows for item/entity/recipe of the same thing.
 	local members = subgroupMembers[subgroup.name]
 	for _, item in pairs(members.item) do
-		if not subgroupAlsoHasRecipe(item) then
-			outputItem(item)
-		end
+		outputItem(item)
 	end
 	for _, fluid in pairs(members.fluid) do
-		if not subgroupAlsoHasRecipe(fluid) then
-			outputFluid(fluid)
-		end
+		outputFluid(fluid)
 	end
 	for _, recipe in pairs(members.recipe) do
 		outputRecipe(recipe)
@@ -190,7 +232,10 @@ local function outputSubgroup(subgroup, group)
 end
 
 local function outputGroup(group)
-	if not groupHasMembers(group) then return end
+	if not groupHasMembers(group) then
+		write{"", "GROUP: ", group.localised_name, " - has no members that need printing.\n"}
+		return
+	end
 	write{"", "GROUP: ", group.localised_name, "\n"}
 	for _, subgroup in pairs(groupsToSubgroups[group.name]) do
 		outputSubgroup(subgroup, group)
