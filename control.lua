@@ -205,11 +205,29 @@ local function maybeOutputEntityMinable(entity)
 end
 
 ---@param entity LuaEntityPrototype
+local function maybeOutputEntityCraftingCategories(entity)
+	if entity.crafting_categories == nil or table_size(entity.crafting_categories) == 0 then return end
+	write("\tCan craft categories: ")
+	local i = 1
+	for category, _ in pairs(entity.crafting_categories) do
+		if category ~= "parameters" then
+			if i > 1 then
+				write(", ")
+			end
+			write(category)
+			i = i + 1
+		end
+	end
+	write("\n")
+end
+
+---@param entity LuaEntityPrototype
 local function outputEntity(entity)
 	if entity.hidden or entity.hidden_in_factoriopedia then return end
 	write{"", "* Entity: ", entity.localised_name, "\n"}
 	writeIfExists{"", "\tDescription: ", entity.localised_description, "\n"}
 	maybeOutputEntityMinable(entity)
+	maybeOutputEntityCraftingCategories(entity)
 end
 
 ---@param spaceLocation LuaSpaceLocationPrototype
