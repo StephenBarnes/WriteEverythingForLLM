@@ -69,18 +69,25 @@ local function getTechOrder(tech)
 	end
 end
 table.sort(technologies, function(a, b)
-	log("getTechOrder(" .. a.name .. ") = " .. getTechOrder(a))
-	log("getTechOrder(" .. b.name .. ") = " .. getTechOrder(b))
 	return getTechOrder(a) < getTechOrder(b)
 end)
 
 ------------------------------------------------------------------------
 --- FUNCTIONS TO WRITE GROUPS/SUBGROUPS/ITEMS/ETC TO FILE
 
+local function recursiveLength(l)
+	if type(l) ~= "table" then return 1 end
+	local count = 0
+	for _, v in pairs(l) do
+		count = count + recursiveLength(v)
+	end
+	return count
+end
+
 -- Function that writes a string, with localisation for item names etc. Argument should be either one string, or a list of strings where the first one is "" (meaning the rest are concatenated).
 local function write(locstr)
 	if type(locstr) == "table" then
-		assert(#locstr < 20, "Localised-string writing is limited to 20 items at a time. Broken by: " .. serpent.block(locstr or "nil"))
+		assert(recursiveLength(locstr) < 20, "Localised-string writing is limited to 20 items at a time. Broken by: " .. serpent.block(locstr or "nil"))
 	end
 	helpers.write_file("WriteEverythingForLLM.txt", locstr, true)
 end
@@ -102,7 +109,7 @@ end
 
 ---@param recipe LuaRecipePrototype
 local function writeRecipeSummary(recipe)
-	-- Write the recipe in a format like "category: 2 iron-ore + 1 sulfuric-acid -> 1 iron-plate + 20% 0-5 sulfur"
+	-- Write the recipe in a format like "category: 2 Iron ore + 1 Sulfuric acid -> 1 Iron plate + 20% 0-5 Sulfur"
 	write("\t")
 	for i, ingredient in pairs(recipe.ingredients) do
 		write{"", ingredient.amount, " ", ingredientOrResultName(ingredient)}
