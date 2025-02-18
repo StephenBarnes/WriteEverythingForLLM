@@ -24,13 +24,17 @@ for _, subgroups in pairs(groupsToSubgroups) do
 end
 
 -- For each subgroup, make a list of all items/fluids/recipes/entities in it.
+local kinds = {"item", "fluid", "recipe", "entity", "space_location"}
 local subgroupMembers = {}
 for _, subgroups in pairs(groupsToSubgroups) do
 	for _, subgroup in pairs(subgroups) do
-		subgroupMembers[subgroup.name] = {item = {}, fluid = {}, recipe = {}, entity = {}}
+		subgroupMembers[subgroup.name] = {}
+		for _, k in pairs(kinds) do
+			subgroupMembers[subgroup.name][k] = {}
+		end
 	end
 end
-for _, k in pairs{"item", "fluid", "recipe", "entity"} do
+for _, k in pairs(kinds) do
 	for _, thing in pairs(prototypes[k]) do
 		if thing.subgroup ~= nil then
 			table.insert(subgroupMembers[thing.subgroup.name][k], thing)
@@ -192,6 +196,12 @@ local function outputEntity(entity)
 	maybeOutputEntityMinable(entity)
 end
 
+---@param spaceLocation LuaSpaceLocationPrototype
+local function outputSpaceLocation(spaceLocation)
+	write{"", "* Space location: ", spaceLocation.localised_name, "\n"}
+	writeIfExists{"", "\tDescription: ", spaceLocation.localised_description, "\n"}
+end
+
 local function subgroupHasMembers(subgroup)
 	for _, things in pairs(subgroupMembers[subgroup.name]) do
 		for _, thing in pairs(things) do
@@ -229,6 +239,9 @@ local function outputSubgroup(subgroup, group)
 	for _, entity in pairs(members.entity) do
 		outputEntity(entity)
 	end
+	for _, spaceLocation in pairs(members.space_location) do
+		outputSpaceLocation(spaceLocation)
+	end
 end
 
 local function outputGroup(group)
@@ -256,4 +269,3 @@ end
 -- TODO: Write techs.
 -- TODO: Write out descriptions where applicable.
 -- TODO: Write out planets, planet-routes, etc.
--- TODO: Write out minable results of mining things.
