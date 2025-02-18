@@ -309,19 +309,44 @@ local function outputSubgroup(subgroup, group)
 	-- If the subgroup has no members, don't write anything.
 	if not subgroupHasMembers(subgroup) then return end
 	write{"", "Group \"", group.localised_name, "\" has subgroup \"", subgroup.name, "\" containing:\n"}
-	-- Write out all items/etc, except don't print out multiple rows for item/entity/recipe of the same thing.
+
+	-- Write out all items/etc, attempting to group item/entity/recipe together.
 	local members = subgroupMembers[subgroup.name]
+	local alreadyPrinted = {}
+	for _, kind in pairs(kinds) do
+		alreadyPrinted[kind] = {}
+	end
+
 	for _, item in pairs(members.item) do
 		outputItem(item)
+		local entity = prototypes.entity[item.name]
+		if entity ~= nil and not (entity.hidden or entity.hidden_in_factoriopedia) and entity.subgroup.name == subgroup.name then
+			outputEntity(entity)
+			alreadyPrinted.entity[entity.name] = true
+		end
+		local recipe = prototypes.recipe[item.name]
+		if recipe ~= nil and not (recipe.hidden or recipe.hidden_in_factoriopedia) and recipe.subgroup.name == subgroup.name then
+			outputRecipe(recipe)
+			alreadyPrinted.recipe[recipe.name] = true
+		end
 	end
 	for _, fluid in pairs(members.fluid) do
 		outputFluid(fluid)
-	end
-	for _, recipe in pairs(members.recipe) do
-		outputRecipe(recipe)
+		local recipe = prototypes.recipe[fluid.name]
+		if recipe ~= nil and not (recipe.hidden or recipe.hidden_in_factoriopedia) and recipe.subgroup.name == subgroup.name then
+			outputRecipe(recipe)
+			alreadyPrinted.recipe[recipe.name] = true
+		end
 	end
 	for _, entity in pairs(members.entity) do
-		outputEntity(entity)
+		if not alreadyPrinted.entity[entity.name] then
+			outputEntity(entity)
+		end
+	end
+	for _, recipe in pairs(members.recipe) do
+		if not alreadyPrinted.recipe[recipe.name] then
+			outputRecipe(recipe)
+		end
 	end
 	for _, spaceLocation in pairs(members.space_location) do
 		outputSpaceLocation(spaceLocation)
