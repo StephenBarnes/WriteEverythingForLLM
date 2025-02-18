@@ -68,6 +68,10 @@ local function write(locstr)
 	helpers.write_file("WriteEverythingForLLM.txt", locstr, true)
 end
 
+local function writeIfExists(locstr)
+	write{"?", locstr, ""}
+end
+
 local function ingredientOrResultName(thing)
 	if thing.type == "item" then
 		return prototypes.item[thing.name].localised_name
@@ -112,22 +116,26 @@ end
 local function outputItem(item)
 	if item.hidden or item.hidden_in_factoriopedia or item.parameter then return end
 	write{"", "* Item: ", item.localised_name, "\n"}
+	writeIfExists{"", "\tDescription: ", item.localised_description, "\n"}
 end
 
 local function outputFluid(fluid)
 	if fluid.hidden or fluid.hidden_in_factoriopedia or fluid.parameter then return end
 	write{"", "* Fluid: ", fluid.localised_name, "\n"}
+	writeIfExists{"", "\tDescription: ", fluid.localised_description, "\n"}
 end
 
 local function outputRecipe(recipe)
 	if recipe.hidden or recipe.hidden_in_factoriopedia or recipe.parameter then return end
 	write{"", "* Recipe: ", recipe.localised_name, "\n"}
 	writeRecipeSummary(recipe)
+	writeIfExists{"", "\tDescription: ", recipe.localised_description, "\n"}
 end
 
 local function outputEntity(entity)
 	if entity.hidden or entity.hidden_in_factoriopedia then return end
 	write{"", "* Entity: ", entity.localised_name, "\n"}
+	writeIfExists{"", "\tDescription: ", entity.localised_description, "\n"}
 end
 
 local function subgroupHasMembers(subgroup)
@@ -160,7 +168,7 @@ local function outputSubgroup(subgroup, group)
 	-- Write out a subgroup's items/fluids/recipes/entities.
 	-- If the subgroup has no members, don't write anything.
 	if not subgroupHasMembers(subgroup) then return end
-	write{"", group.localised_name, " subgroup ", subgroup.name, " containing:\n"}
+	write{"", group.localised_name, " subgroup \"", subgroup.name, "\" containing:\n"}
 	-- Write out all items/etc, except don't print out multiple rows for item/entity/recipe of the same thing.
 	local members = subgroupMembers[subgroup.name]
 	for _, item in pairs(members.item) do
@@ -177,9 +185,7 @@ local function outputSubgroup(subgroup, group)
 		outputRecipe(recipe)
 	end
 	for _, entity in pairs(members.entity) do
-		if not subgroupAlsoHasRecipe(entity) then
-			outputEntity(entity)
-		end
+		outputEntity(entity)
 	end
 end
 
@@ -189,7 +195,7 @@ local function outputGroup(group)
 	for _, subgroup in pairs(groupsToSubgroups[group.name]) do
 		outputSubgroup(subgroup, group)
 	end
-	write{"", "End of group: ", group.localised_name, "\n\n\n"}
+	write{"", "End of group: ", group.localised_name, "\n\n"}
 end
 
 ------------------------------------------------------------------------
@@ -200,3 +206,9 @@ helpers.write_file("WriteEverythingForLLM.txt", "", false) -- False says to not 
 for _, group in pairs(groups) do
 	outputGroup(group)
 end
+
+
+-- TODO: Write techs.
+-- TODO: Write out descriptions where applicable.
+-- TODO: Write out planets, planet-routes, etc.
+-- TODO: Write out minable results of mining things.
