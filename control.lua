@@ -231,10 +231,32 @@ local function outputEntity(entity)
 end
 
 ---@param spaceLocation LuaSpaceLocationPrototype
+local function maybeOutputPlanetAutoplaces(spaceLocation)
+	local mgs = spaceLocation.map_gen_settings
+	if mgs == nil then return end
+	local autoplaceSettings = mgs.autoplace_settings
+	if autoplaceSettings == nil then return end
+	-- This has .decorative, .tile, .entity. For now, just outputting the entities.
+	local ents = autoplaceSettings.entity.settings
+	if ents == nil then return end
+	write("\tNaturally occurring entities on this planet: ")
+	local i = 1
+	for entName, _ in pairs(ents) do
+		if i > 1 then
+			write(", ")
+		end
+		write(prototypes.entity[entName].localised_name)
+		i = i + 1
+	end
+	write(".\n")
+end
+
+---@param spaceLocation LuaSpaceLocationPrototype
 local function outputSpaceLocation(spaceLocation)
 	if spaceLocation.hidden or spaceLocation.hidden_in_factoriopedia then return end
 	write{"", "* Space location: ", spaceLocation.localised_name, "\n"}
 	writeIfExists{"", "\tDescription: ", spaceLocation.localised_description, "\n"}
+	maybeOutputPlanetAutoplaces(spaceLocation)
 end
 
 ---@param spaceConnection LuaSpaceConnectionPrototype
