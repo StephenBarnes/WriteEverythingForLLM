@@ -24,7 +24,7 @@ for _, subgroups in pairs(groupsToSubgroups) do
 end
 
 -- For each subgroup, make a list of all items/fluids/recipes/entities in it.
-local kinds = {"item", "fluid", "recipe", "entity", "space_location"}
+local kinds = {"item", "fluid", "recipe", "entity", "space_location", "space_connection"}
 local subgroupMembers = {}
 for _, subgroups in pairs(groupsToSubgroups) do
 	for _, subgroup in pairs(subgroups) do
@@ -202,6 +202,13 @@ local function outputSpaceLocation(spaceLocation)
 	writeIfExists{"", "\tDescription: ", spaceLocation.localised_description, "\n"}
 end
 
+---@param spaceConnection LuaSpaceConnectionPrototype
+local function outputSpaceConnection(spaceConnection)
+	write{"", "* Space connection: ", spaceConnection.localised_name, "\n"}
+	write{"", "\tLength: " .. spaceConnection.length .. "km\n"}
+	writeIfExists{"", "\tDescription: ", spaceConnection.localised_description, "\n"}
+end
+
 local function subgroupHasMembers(subgroup)
 	for _, things in pairs(subgroupMembers[subgroup.name]) do
 		for _, thing in pairs(things) do
@@ -241,6 +248,9 @@ local function outputSubgroup(subgroup, group)
 	end
 	for _, spaceLocation in pairs(members.space_location) do
 		outputSpaceLocation(spaceLocation)
+	end
+	for _, spaceConnection in pairs(members.space_connection) do
+		outputSpaceConnection(spaceConnection)
 	end
 end
 
