@@ -1,11 +1,11 @@
 {
-	"name": "WriteEverythingForLLM",
+	"name": "ExportFactoriopediaForLLM",
 	"version": "1.0.0",
-	"title": "Write Everything For LLM",
+	"title": "Export Factoriopedia for LLM",
 	"author": "StephenB",
 	"factorio_version": "2.0",
 	"dependencies": [
 		"base >= 2.0"
 	],
-	"description": "Writes everything in the modpack (recipes, techs, etc.) into a text file, for LLM ingestion."
+	"description": "Writes most of the info in the Factoriopedia to a text file for LLM ingestion."
 }

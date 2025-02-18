@@ -1,3 +1,4 @@
+local FILENAME = "ExportFactoriopediaForLLM.txt"
 
 ------------------------------------------------------------------------
 --- BUILD LISTS OF ALL GROUPS AND THEIR SUBGROUPS, ETC.
@@ -89,7 +90,7 @@ local function write(locstr)
 	if type(locstr) == "table" then
 		assert(recursiveLength(locstr) < 20, "Localised-string writing is limited to 20 items at a time. Broken by: " .. serpent.block(locstr or "nil"))
 	end
-	helpers.write_file("WriteEverythingForLLM.txt", locstr, true)
+	helpers.write_file(FILENAME, locstr, true)
 end
 
 -- Uses the "?" operator (built into Factorio's localised-string system) to write a string only if all of the localised strings in it exist, otherwise does nothing.
@@ -373,13 +374,26 @@ end
 ------------------------------------------------------------------------
 --- MAIN
 
-helpers.write_file("WriteEverythingForLLM.txt", "", false) -- False says to not append, so we remove text from the file.
+helpers.write_file(FILENAME, "", false) -- False says to not append, so we remove text from the file.
+
+write("This file contains information about things that exist in the user's Factorio game, arranged by groups and subgroups, followed by a list of all technologies and the recipes they unlock. For every subgroup there is a complete list of all items, fluids, recipes, entities, and space locations/connections in that subgroup. Often an item is crafted using a recipe of the same name. Some items represent buildings/structures; these items can be placed in the Factorio world to create entities with the same name; the entities can then usually be mined / picked up to get the item back.\n\n")
+
+write("There are " .. table_size(groups) .. " groups: \"")
+local i = 1
+for _, group in pairs(groups) do
+	if i > 1 then
+		write("\", \"")
+	end
+	write(group.localised_name)
+	i = i + 1
+end
+write("\".\n\n")
 
 for _, group in pairs(groups) do
 	outputGroup(group)
 end
 
-write("All technologies:\n")
+write("There are " .. table_size(technologies) .. " technologies, listed below:\n")
 for _, technology in pairs(technologies) do
 	outputTechnology(technology)
 end
