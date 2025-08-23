@@ -1,5 +1,12 @@
 local FILENAME = "ExportFactoriopediaForLLM.txt"
 
+-- Simple toggle: include internal prototype IDs in output (no external settings file)
+local INCLUDE_IDS = true
+local function idSuffix(kind, name)
+	if INCLUDE_IDS then return " [" .. kind .. "/" .. name .. "]" end
+	return ""
+end
+
 ------------------------------------------------------------------------
 --- BUILD LISTS OF ALL GROUPS AND THEIR SUBGROUPS, ETC.
 
@@ -113,7 +120,7 @@ local function writeRecipeSummary(recipe)
 	-- Write the recipe in a format like "category: 2 Iron ore + 1 Sulfuric acid -> 1 Iron plate + 20% 0-5 Sulfur"
 	write("\t")
 	for i, ingredient in pairs(recipe.ingredients) do
-		write{"", ingredient.amount, " ", ingredientOrResultName(ingredient)}
+		write{"", ingredient.amount, " ", ingredientOrResultName(ingredient), idSuffix(ingredient.type, ingredient.name)}
 		if i < #recipe.ingredients then write(" + ") end
 	end
 	write(" -> ")
@@ -130,7 +137,7 @@ local function writeRecipeSummary(recipe)
 		if result.amount_min ~= nil then
 			write(result.amount_min .. "-" .. result.amount_max .. " ")
 		end
-		write(ingredientOrResultName(result))
+		write{"", ingredientOrResultName(result), idSuffix(result.type, result.name)}
 		if i < #recipe.products then write(" + ") end
 	end
 	write("\n")
@@ -156,7 +163,7 @@ end
 ---@param item LuaItemPrototype
 local function outputItem(item)
 	if item.hidden or item.hidden_in_factoriopedia or item.parameter then return end
-	write{"", "* Item: ", item.localised_name, "\n"}
+	write{"", "* Item: ", item.localised_name, idSuffix("item", item.name), "\n"}
 	if item.spoil_result ~= nil then
 		write{"", "\tSpoils to ", item.spoil_result.localised_name, " after " .. timeString(item.get_spoil_ticks()) .. "\n"}
 	elseif item.spoil_to_trigger_result ~= nil then
@@ -167,13 +174,13 @@ end
 
 local function outputFluid(fluid)
 	if fluid.hidden or fluid.hidden_in_factoriopedia or fluid.parameter then return end
-	write{"", "* Fluid: ", fluid.localised_name, "\n"}
+	write{"", "* Fluid: ", fluid.localised_name, idSuffix("fluid", fluid.name), "\n"}
 	writeIfExists{"", "\tDescription: ", fluid.localised_description, "\n"}
 end
 
 local function outputRecipe(recipe)
 	if recipe.hidden or recipe.hidden_in_factoriopedia or recipe.parameter then return end
-	write{"", "* Recipe: ", recipe.localised_name, "\n"}
+	write{"", "* Recipe: ", recipe.localised_name, idSuffix("recipe", recipe.name), "\n"}
 	writeRecipeSummary(recipe)
 	writeIfExists{"", "\tDescription: ", recipe.localised_description, "\n"}
 end
@@ -195,9 +202,9 @@ local function maybeOutputEntityMinable(entity)
 				write(product.probability * 100 .. "% ")
 			end
 			if product.amount ~= nil then
-				write{"", product.amount .. " ", localisedName}
+				write{"", product.amount .. " ", localisedName, idSuffix(product.type, product.name)}
 			else
-				write{"", product.amount_min .. "-" .. product.amount_max .. " ", localisedName}
+				write{"", product.amount_min .. "-" .. product.amount_max .. " ", localisedName, idSuffix(product.type, product.name)}
 			end
 			if i < #mineProducts then write(" + ") end
 		end
@@ -225,7 +232,7 @@ end
 ---@param entity LuaEntityPrototype
 local function outputEntity(entity)
 	if entity.hidden or entity.hidden_in_factoriopedia then return end
-	write{"", "* Entity: ", entity.localised_name, "\n"}
+	write{"", "* Entity: ", entity.localised_name, idSuffix("entity", entity.name), "\n"}
 	writeIfExists{"", "\tDescription: ", entity.localised_description, "\n"}
 	maybeOutputEntityMinable(entity)
 	maybeOutputEntityCraftingCategories(entity)
@@ -246,7 +253,7 @@ local function maybeOutputPlanetAutoplaces(spaceLocation)
 			if i > 1 then
 				write(", ")
 			end
-			write(prototypes.entity[entName].localised_name)
+			write{"", prototypes.entity[entName].localised_name, idSuffix("entity", entName)}
 			i = i + 1
 		end
 		write(".\n")
@@ -260,9 +267,9 @@ local function maybeOutputPlanetAutoplaces(spaceLocation)
 				write(", ")
 			end
 			local tile = prototypes.tile[tileName]
-			write(tile.localised_name)
+			write{"", tile.localised_name, idSuffix("tile", tileName)}
 			if tile.fluid ~= nil then
-				write{"", " (provides fluid ", tile.fluid.localised_name, ")"}
+				write{"", " (provides fluid ", tile.fluid.localised_name, idSuffix("fluid", tile.fluid.name), ")"}
 			end
 			i = i + 1
 		end
@@ -273,7 +280,7 @@ end
 ---@param spaceLocation LuaSpaceLocationPrototype
 local function outputSpaceLocation(spaceLocation)
 	if spaceLocation.hidden or spaceLocation.hidden_in_factoriopedia then return end
-	write{"", "* Space location: ", spaceLocation.localised_name, "\n"}
+	write{"", "* Space location: ", spaceLocation.localised_name, idSuffix("space-location", spaceLocation.name), "\n"}
 	writeIfExists{"", "\tDescription: ", spaceLocation.localised_description, "\n"}
 	maybeOutputPlanetAutoplaces(spaceLocation)
 end
@@ -281,7 +288,7 @@ end
 ---@param spaceConnection LuaSpaceConnectionPrototype
 local function outputSpaceConnection(spaceConnection)
 	if spaceConnection.hidden or spaceConnection.hidden_in_factoriopedia then return end
-	write{"", "* Space connection: ", spaceConnection.localised_name, "\n"}
+	write{"", "* Space connection: ", spaceConnection.localised_name, idSuffix("space-connection", spaceConnection.name), "\n"}
 	write{"", "\tLength: " .. spaceConnection.length .. "km\n"}
 	writeIfExists{"", "\tDescription: ", spaceConnection.localised_description, "\n"}
 end
@@ -370,7 +377,7 @@ end
 
 ---@param technology LuaTechnologyPrototype
 local function outputTechnology(technology)
-	write{"", "* Technology: ", technology.localised_name, "\n"}
+	write{"", "* Technology: ", technology.localised_name, idSuffix("technology", technology.name), "\n"}
 	writeIfExists{"", "\tDescription: ", technology.localised_description, "\n"}
 	write("\tPrerequisites: ")
 	if table_size(technology.prerequisites) == 0 then
@@ -381,7 +388,7 @@ local function outputTechnology(technology)
 			if i > 1 then
 				write(", ")
 			end
-			write(prereqTech.localised_name)
+			write{"", prereqTech.localised_name, idSuffix("technology", name)}
 			i = i + 1
 		end
 		write(".\n")
@@ -389,7 +396,7 @@ local function outputTechnology(technology)
 	for _, effect in pairs(technology.effects) do
 		if effect.type == "unlock-recipe" then
 			local recipe = prototypes.recipe[effect.recipe]
-			write{"", "\tUnlocks recipe: ", recipe.localised_name, "\n"}
+			write{"", "\tUnlocks recipe: ", recipe.localised_name, idSuffix("recipe", recipe.name), "\n"}
 		else
 			write("\tNon-recipe-unlock effect of type " .. effect.type .. "\n")
 		end
