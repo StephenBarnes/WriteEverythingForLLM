@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2025-08-23
+  Features:
+    - Include internal prototype IDs in export (toggle via INCLUDE_IDS in control.luam, true by default).
+---------------------------------------------------------------------------------------------------
 Version: 1.0.0
 Date: 2025-02-18
   Features:
