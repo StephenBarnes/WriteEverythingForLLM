@@ -1,6 +1,6 @@
 local FILENAME = "ExportFactoriopediaForLLM.txt"
 
--- Simple toggle: include internal prototype IDs in output (no external settings file)
+-- Include internal prototype IDs in output if setting is enabled.
 local INCLUDE_IDS = true
 local function idSuffix(kind, name)
 	if INCLUDE_IDS then return " [" .. kind .. "/" .. name .. "]" end
@@ -92,7 +92,7 @@ local function recursiveLength(l)
 	return count
 end
 
--- Function that writes a string, with localisation for item names etc. Argument should be either one string, or a list of strings where the first one is "" (meaning the rest are concatenated).
+-- Function that writes a string, with localisation for item names etc. Argument should be either one string (just printed directly), or a list of strings where the first one is "" or "?" or something like "item-name.iron-plate". See docs on Factorio LocalisedString's.
 local function write(locstr)
 	if type(locstr) == "table" then
 		assert(recursiveLength(locstr) < 20, "Localised-string writing is limited to 20 items at a time. Broken by: " .. serpent.block(locstr or "nil"))
@@ -406,26 +406,43 @@ end
 ------------------------------------------------------------------------
 --- MAIN
 
-helpers.write_file(FILENAME, "", false) -- False says to not append, so we remove text from the file.
+local function writeFile()
+	---@diagnostic disable-next-line: cast-local-type
+	INCLUDE_IDS = settings.global["ExportFactoriopediaForLLM-include-IDs"].value
 
-write("This file contains information about prototypes that exist in the user's Factorio game, arranged by groups and subgroups. For every subgroup there is a complete list of all items, fluids, recipes, entities, and space locations/connections in that subgroup. This is followed by a list of all technologies and the recipes they unlock.\n\nOften an item is crafted using a recipe with the same name as the item. Some items represent buildings/structures; the player can place these items in the Factorio world to create entities with the same name.\n\n")
+	helpers.write_file(FILENAME, "", false) -- False says to not append, so we remove text from the file.
 
-write("There are " .. table_size(groups) .. " groups: \"")
-local i = 1
-for _, group in pairs(groups) do
-	if i > 1 then
-		write("\", \"")
+	write("This file contains information about prototypes that exist in the user's Factorio game, arranged by groups and subgroups. For every subgroup there is a complete list of all items, fluids, recipes, entities, and space locations/connections in that subgroup. This is followed by a list of all technologies and the recipes they unlock.\n\nOften an item is crafted using a recipe with the same name as the item. Some items represent buildings/structures; the player can place these items in the Factorio world to create entities with the same name.\n\n")
+
+	write("There are " .. table_size(groups) .. " groups: \"")
+	local i = 1
+	for _, group in pairs(groups) do
+		if i > 1 then
+			write("\", \"")
+		end
+		write(group.localised_name)
+		i = i + 1
 	end
-	write(group.localised_name)
-	i = i + 1
-end
-write("\".\n\n")
+	write("\".\n\n")
 
-for _, group in pairs(groups) do
-	outputGroup(group)
+	for _, group in pairs(groups) do
+		outputGroup(group)
+	end
+
+	write("There are " .. table_size(technologies) .. " technologies, listed below:\n")
+	for _, technology in pairs(technologies) do
+		outputTechnology(technology)
+	end
 end
 
-write("There are " .. table_size(technologies) .. " technologies, listed below:\n")
-for _, technology in pairs(technologies) do
-	outputTechnology(technology)
-end
+-- Write file on game start/load.
+writeFile()
+-- Update file if setting changed.
+script.on_event(defines.events.on_runtime_mod_setting_changed,
+	---@param event EventData.on_runtime_mod_setting_changed
+	function(event)
+		if event.setting == "ExportFactoriopediaForLLM-include-IDs" then
+			writeFile()
+		end
+	end
+)
